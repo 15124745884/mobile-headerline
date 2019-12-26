@@ -37,6 +37,7 @@
             v-show="editing && i !== 0"
             class="btn"
             name="cross"
+            @click.stop="delChannel(item.id, i)"
           ></van-icon>
         </van-grid-item>
       </van-grid>
@@ -46,7 +47,7 @@
       <van-grid class="van-hairline--left">
         <van-grid-item v-for="item in optionAllChannel" :key="item.id">
           <span class="f12">{{ item.name }}</span>
-          <van-icon class="btn" name="plus"></van-icon>
+          <van-icon class="btn" name="plus" @click="addChannel(item)"></van-icon>
         </van-grid-item>
       </van-grid>
     </div>
@@ -56,7 +57,7 @@
 <script>
 // 这里可以导入其他文件（比如：组件，工具js，第三方插件js，json文件，图片文件等等）
 // 例如：import 《组件名称》 from '《组件路径》';
-import { getAllChannels } from '@/API/channel.js'
+import { getAllChannels, delChannel, addChannel } from '@/API/channel.js'
 export default {
   name: 'chennle-edit',
   // import引入的组件需要注入到对象中才能使用
@@ -99,6 +100,55 @@ export default {
     enterChannel (index) {
       this.$emit('input', false)
       this.$emit('update:activeIndex', index)
+    },
+    async delChannel (channelId, index) {
+      try {
+        await delChannel(channelId)
+        this.$toast.success('删除成功')
+        // 删除 我的频道（父组件数据） 中对应的选项
+        // 父传子的数据，只读。不可修改（简单数据类型：不能重新赋值，复杂数据类型：不能修改引用地址）
+        // 大白话：复杂数据类型，不去重新赋值，数据可以修改。
+        this.channelList.splice(index, 1)
+        // 条件：当你删除的频道的索引小于等于当前激活频道的索引，激活频道索引减一
+        if (index <= this.activeIndex) {
+          this.$emit('update:activeIndex', this.activeIndex - 1)
+        }
+      } catch (e) {
+        this.$toast.fail('删除失败')
+      }
+    },
+    async addChannel (item) {
+      const orderChannels = this.channelList.map((item, i) => {
+        return {
+          id: item.id,
+          name: item.name,
+          seq: i
+        }
+      })
+      // 追加需要添加的频道
+      orderChannels.push({ ...item, seq: orderChannels.length })
+      // 剔除推荐频道
+      orderChannels.shift()
+      try {
+        // 调用添加频道的API
+        await addChannel(orderChannels)
+        // 提示
+        this.$toast.success('添加成功')
+        // myChannels我的频道上追加一个频道
+        this.channelList.push({
+          id: item.id,
+          name: item.name,
+          articles: [],
+          upLoading: false,
+          downLoading: false,
+          finished: false,
+          timestamp: Date.now(),
+          scrollTop: 0
+        })
+        console.log(1)
+      } catch (e) {
+        this.$toast.fail('添加失败')
+      }
     }
   },
   // 生命周期 - 创建完成（可以访问当前this实例）

@@ -1,4 +1,4 @@
-const USER_KEY = 'hm-toutiao-m-user-85'
+const USER_KEY = 'meiri-m-user'
 export const getUser = () => {
   return JSON.parse(window.localStorage.getItem(USER_KEY) || '{}')
 }
